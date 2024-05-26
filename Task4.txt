@@ -1,0 +1,90 @@
+package task4;
+import java.util.*;
+import java.util.concurrent.*;
+
+public class QuizApp {
+    private List<Question> questions;
+    private int score;
+    private Scanner scanner;
+
+    public QuizApp(List<Question> questions) {
+        this.questions = questions;
+        score = 0;
+        scanner = new Scanner(System.in);
+    }
+
+    public void startQuiz() {
+        System.out.println("Welcome to the Quiz");
+        System.out.println("You have 10 seconds to answer each question");
+        
+        for (int i = 0; i < questions.size(); i++) {
+            Question currentQuestion = questions.get(i);
+            System.out.println("Question " + (i + 1) + ": " + currentQuestion.getPrompt());
+            List<String> options = currentQuestion.getOptions();
+            for (int j = 0; j < options.size(); j++) {
+                System.out.println((char) ('A' + j) + ". " + options.get(j));
+            }
+
+            ExecutorService executor = Executors.newSingleThreadExecutor();
+            Future<String> future = executor.submit(() -> {
+                System.out.print("Your answer (A/B/C/D): ");
+                return scanner.nextLine().toUpperCase();
+            });
+
+            try {
+                String userAnswer = future.get(10, TimeUnit.SECONDS);
+                if (userAnswer.equals(Character.toString((char) ('A' + currentQuestion.getCorrectOption())))) {
+                    System.out.println("Correct!");
+                    score++;
+                } else {
+                    System.out.println("Incorrect!");
+                }
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                System.out.println("Time's up! Moving to the next question.");
+            } finally {
+                future.cancel(true);
+                executor.shutdownNow();
+                System.out.println();
+            }
+        }
+        System.out.println("Quiz ended. Your final score is: " + score + "/" + questions.size());
+    }
+class Question {
+    private String prompt;
+    private List<String> options;
+    private int correctOption;
+
+    public Question(String prompt, List<String> options, int correctOption) {
+        this.prompt = prompt;
+        this.options = options;
+        this.correctOption = correctOption;
+    }
+
+    public String getPrompt() {
+        return prompt;
+    }
+
+    public List<String> getOptions() {
+        return options;
+    }
+
+    public int getCorrectOption() {
+        return correctOption;
+    }
+}
+
+public static void main(String[] args) {
+    List<Question> quizQuestions = new ArrayList<>();
+    // Add quiz questions with options and correct answers
+    quizQuestions.add(new Question("What is the currency of India?",
+            Arrays.asList("A. Dollar", "B. Rupee", "C. Euro", "D. Yen"), 1));
+    quizQuestions.add(new Question("What is capital of India?",
+            Arrays.asList("A. Chandigarh", "B. New Delhi", "C. Jaipur", "D. Mumbai"), 1));
+    quizQuestions.add(new Question("Which is the national animal of India?",
+            Arrays.asList("A. Elephant", "B. Tiger", "C. Giraffe", "D. Hippopotamus"), 1));
+
+    QuizApp quizApp = new QuizApp(quizQuestions);
+    quizApp.startQuiz();
+}
+}
+
